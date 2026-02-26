@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Catatan Harianku</title>
+    
+    <!-- Menggunakan Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Menggunakan Phosphor Icons untuk ikon -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* Animasi untuk Modal */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Kustom scrollbar untuk textarea */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Tampilan garis buku pada textarea */
+        .paper-lines {
+            background-image: repeating-linear-gradient(transparent, transparent 31px, #e2e8f0 31px, #e2e8f0 32px);
+            line-height: 32px;
+            padding: 8px 10px;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-slate-800 font-sans min-h-screen relative">
+
+    <!-- Container Utama -->
+    <div class="max-w-3xl mx-auto min-h-screen flex flex-col relative">
+        
+        <!-- Header -->
+        <header class="bg-amber-600 text-white p-6 shadow-md sticky top-0 z-10 flex justify-between items-center rounded-b-2xl sm:rounded-none sm:rounded-b-3xl">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center gap-2">
+                    <i class="ph ph-book-open-text text-3xl"></i>
+                    Jurnal Harianku
+                </h1>
+                <p class="text-amber-100 text-sm mt-1">Simpan momen dan pikiranmu di sini.</p>
+            </div>
+            <div class="hidden sm:block text-right">
+                <p class="font-medium text-amber-50" id="currentDateHeader">Hari ini</p>
+            </div>
+        </header>
+
+        <!-- Area Daftar Catatan -->
+        <main class="flex-1 p-4 sm:p-6 pb-24">
+            
+            <!-- Grid untuk Card Catatan -->
+            <div id="notesGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Catatan akan dirender di sini oleh JavaScript -->
+            </div>
+
+            <!-- Tampilan Kosong (Empty State) -->
+            <div id="emptyState" class="flex flex-col items-center justify-center py-20 text-slate-400 hidden">
+                <i class="ph ph-notebook text-7xl mb-4 text-amber-200"></i>
+                <p class="text-lg font-medium text-slate-500">Buku harian masih kosong</p>
+                <p class="text-sm mt-1">Ketuk tombol + untuk mulai menulis.</p>
+            </div>
+
+        </main>
+
+        <!-- Tombol Mengambang (FAB) untuk Tambah Catatan -->
+        <button 
+            id="fabBtn" 
+            onclick="openModal()"
+            class="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 w-14 h-14 bg-amber-600 hover:bg-amber-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-transform transform hover:scale-110 active:scale-95 z-20"
+        >
+            <i class="ph ph-pencil-simple"></i>
+        </button>
+    </div>
+
+    <!-- Modal Form Tambah/Edit Catatan (Awalnya Sembunyi) -->
+    <div id="noteModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden modal-enter transition-all duration-300" id="modalContent">
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-4 border-b border-slate-100 bg-amber-50">
+                <h2 class="text-lg font-bold text-amber-800" id="modalTitle">Tulis Catatan</h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 focus:outline-none p-1">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 flex-1 overflow-y-auto flex flex-col gap-4">
+                <input type="hidden" id="noteId">
+                
+                <div>
+                    <input 
+                        type="text" 
+                        id="titleInput" 
+                        placeholder="Judul Catatan..." 
+                        class="w-full text-xl font-bold border-none focus:ring-0 placeholder-slate-300 text-slate-800 bg-transparent outline-none"
+                    >
+                </div>
+                
+                <div class="flex-1 min-h-[250px] relative">
+                    <textarea 
+                        id="contentInput" 
+                        placeholder="Ceritakan hari ini..." 
+                        class="w-full h-full border-none focus:ring-0 resize-none outline-none text-slate-700 paper-lines text-base absolute inset-0"
+                    ></textarea>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button 
+                    onclick="closeModal()" 
+                    class="px-5 py-2 rounded-xl text-slate-600 font-medium hover:bg-slate-200 transition-colors"
+                >
+                    Batal
+                </button>
+                <button 
+                    onclick="saveNote()" 
+                    class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-sm transition-colors flex items-center gap-2"
+                >
+                    <i class="ph ph-floppy-disk"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Logika Aplikasi -->
+    <script>
+        // Data penyimpan catatan
+        let notes = [];
+
+        // Referensi elemen DOM
+        const notesGrid = document.getElementById('notesGrid');
+        const emptyState = document.getElementById('emptyState');
+        const noteModal = document.getElementById('noteModal');
+        const modalContent = document.getElementById('modalContent');
+        const titleInput = document.getElementById('titleInput');
+        const contentInput = document.getElementById('contentInput');
+        const noteIdInput = document.getElementById('noteId');
+        const currentDateHeader = document.getElementById('currentDateHeader');
+
+        // Mengatur tanggal di header
+        function setHeaderDate() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            currentDateHeader.textContent = new Date().toLocaleDateString('id-ID', options);
+        }
+
+        // Format tanggal untuk kartu catatan
+        function formatDate(dateString) {
+            const options = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        }
+
+        // Load data dari LocalStorage
+        function loadNotes() {
+            const savedNotes = localStorage.getItem('myDiaryNotes');
+            if (savedNotes) {
+                notes = JSON.parse(savedNotes);
+            }
+            renderNotes();
+        }
+
+        // Simpan data ke LocalStorage
+        function saveToStorage() {
+            localStorage.setItem('myDiaryNotes', JSON.stringify(notes));
+        }
+
+        // Merender (menampilkan) catatan ke layar
+        function renderNotes() {
+            notesGrid.innerHTML = '';
+
+            if (notes.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                
+                notes.forEach(note => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col h-48 cursor-pointer relative group";
+                    
+                    // Isi HTML untuk kartu catatan
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg text-slate-800 line-clamp-1 flex-1 pr-2">${escapeHTML(note.title) || 'Tanpa Judul'}</h3>
+                            <button onclick="deleteNote(event, ${note.id})" class="text-slate-300 hover:text-red-500 transition-colors bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 absolute top-3 right-3 shadow-sm border border-slate-100">
+                                <i class="ph ph-trash text-lg"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-amber-600 font-medium mb-3"><i class="ph ph-calendar-blank inline-block mr-1"></i>${formatDate(note.date)}</p>
+                        <p class="text-sm text-slate-600 line-clamp-4 flex-1 whitespace-pre-line">${escapeHTML(note.content)}</p>
+                    `;
+                    
+                    // Klik pada kartu untuk membuka/mengedit
+                    card.addEventListener('click', () => editNote(note.id));
+                    
+                    notesGrid.appendChild(card);
+                });
+            }
+        }
+
+        // Membuka Modal
+        window.openModal = function() {
+            noteIdInput.value = '';
+            titleInput.value = '';
+            contentInput.value = '';
+            document.getElementById('modalTitle').textContent = 'Tulis Catatan Baru';
+            
+            noteModal.classList.remove('hidden');
+            // Sedikit delay agar efek transisi CSS jalan
+            setTimeout(() => {
+                modalContent.classList.add('modal-enter-active');
+            }, 10);
+            
+            // Fokus otomatis ke judul
+            setTimeout(() => titleInput.focus(), 300);
+        };
+
+        // Menutup Modal
+        window.closeModal = function() {
+            modalContent.classList.remove('modal-enter-active');
+            setTimeout(() => {
+                noteModal.classList.add('hidden');
+            }, 300);
+        };
+
+        // Menyimpan Catatan (Baru atau Edit)
+        window.saveNote = function() {
+            const title = titleInput.value.trim();
+            const content = contentInput.value.trim();
+            const id = noteIdInput.value;
+
+            // Mencegah menyimpan jika kosong
+            if (!title && !content) {
+                alert("Catatan tidak boleh kosong!");
+                return;
+            }
+
+            if (id) {
+                // Update catatan yang sudah ada
+                const noteIndex = notes.findIndex(n => n.id == id);
+                if (noteIndex !== -1) {
+                    notes[noteIndex].title = title;
+                    notes[noteIndex].content = content;
+                    notes[noteIndex].date = new Date().toISOString(); // Update tanggal
+                }
+            } else {
+                // Buat catatan baru
+                const newNote = {
+                    id: Date.now(),
+                    title: title,
+                    content: content,
+                    date: new Date().toISOString()
+                };
+                notes.unshift(newNote); // Tambahkan ke paling atas
+            }
+
+            saveToStorage();
+            renderNotes();
+            closeModal();
+        };
+
+        // Buka catatan untuk diedit
+        window.editNote = function(id) {
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                noteIdInput.value = note.id;
+                titleInput.value = note.title;
+                contentInput.value = note.content;
+                document.getElementById('modalTitle').textContent = 'Edit Catatan';
+                
+                noteModal.classList.remove('hidden');
+                setTimeout(() => {
+                    modalContent.classList.add('modal-enter-active');
+                }, 10);
+            }
+        };
+
+        // Hapus catatan
+        window.deleteNote = function(event, id) {
+            event.stopPropagation(); // Mencegah trigger klik pada kartu yang membuka modal edit
+            if (confirm("Apakah Anda yakin ingin menghapus catatan ini?")) {
+                notes = notes.filter(n => n.id !== id);
+                saveToStorage();
+                renderNotes();
+            }
+        };
+
+        // Utilitas untuk keamanan HTML (Mencegah XSS)
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Event Listener untuk menutup modal jika klik area luar modal
+        noteModal.addEventListener('click', function(e) {
+            if (e.target === noteModal) {
+                closeModal();
+            }
+        });
+
+        // Inisialisasi awal
+        setHeaderDate();
+        loadNotes();
+
+    </script>
+</body>
+</html>
