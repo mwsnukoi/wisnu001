@@ -295,6 +295,15 @@
             }
         };
 
+        // Hapus catatan
+        window.deleteNote = function(event, id) {
+            event.stopPropagation(); // Mencegah trigger klik pada kartu yang membuka modal edit
+            if (confirm("Apakah Anda yakin ingin menghapus catatan ini?")) {
+                notes = notes.filter(n => n.id !== id);
+                saveToStorage();
+                renderNotes();
+            }
+        };
 
         // Utilitas untuk keamanan HTML (Mencegah XSS)
         function escapeHTML(str) {
